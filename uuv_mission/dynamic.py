@@ -97,12 +97,18 @@ class ClosedLoop:
         
         positions = np.zeros((T, 2))
         actions = np.zeros(T)
+
+        self.controller.reset()
         self.plant.reset_state()
 
         for t in range(T):
             positions[t] = self.plant.get_position()
             observation_t = self.plant.get_depth()
-            # Call your controller here
+            reference_t = float(mission.reference[t])
+
+            error = reference_t - observation_t
+            actions[t] = self.controller.update(error)
+
             self.plant.transition(actions[t], disturbances[t])
 
         return Trajectory(positions)

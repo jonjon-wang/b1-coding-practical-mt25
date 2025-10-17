@@ -5,7 +5,26 @@ import matplotlib.pyplot as plt
 from .terrain import generate_reference_and_limits
 import pandas as pd
 
+"""Simulated submarine dynamics and mission utilities.
+
+Provides:
+
+Submarine: simple discrete-time plant (x/y, vertical dynamics).
+Mission: reference depth and cave limits for trajectory planning.
+ClosedLoop: runs a controller against the Submarine and records a Trajectory.
+"""
+
 class Submarine:
+    """Simple submarine plant for discrete-time simulation.
+
+    Attributes:
+    mass (float): mass used for vertical acceleration calculation.
+    drag (float): damping on vertical velocity.
+    actuator_gain (float): gain from control input to force.
+    dt (float): timestep (s).
+    pos_x, pos_y (float): position states.
+    vel_x, vel_y (float): velocity states.
+    """
     def __init__(self):
 
         self.mass = 1
@@ -41,6 +60,10 @@ class Submarine:
         self.vel_y = 0
     
 class Trajectory:
+    """Stores an (T,2) array of (x,y) positions and plotting helpers.
+
+    position: np.ndarray shaped (T, 2) where columns are x and y.
+    """
     def __init__(self, position: np.ndarray):
         self.position = position  
         
@@ -65,6 +88,13 @@ class Trajectory:
 
 @dataclass
 class Mission:
+    """Mission data: reference depth and cave geometry.
+
+    Fields:
+    reference: 1D array of desired depths (float).
+    cave_height: 1D array of cave top heights.
+    cave_depth: 1D array of cave bottom depths.
+    """
     reference: np.ndarray
     cave_height: np.ndarray
     cave_depth: np.ndarray
@@ -85,6 +115,16 @@ class Mission:
 
 
 class ClosedLoop:
+    """Simulate closed-loop operation.
+
+    Args:
+    mission: Mission instance (defines T).
+    disturbances: 1D numpy array, length >= T, additive disturbances per step.
+    Returns:
+    Trajectory with recorded positions.
+    Raises:
+    ValueError if disturbances length < mission duration.
+    """
     def __init__(self, plant: Submarine, controller):
         self.plant = plant
         self.controller = controller

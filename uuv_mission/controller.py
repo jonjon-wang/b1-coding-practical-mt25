@@ -1,4 +1,9 @@
 class PDController:
+    """Discrete-time PD controller.
+
+    The controller implements u[t] = kp * e[t] + kd * (e[t] - e[t-1]).
+    returns the control action and stores the last error for the next call.
+    """
     def __init__(self, kp = 0.15, kd  = 0.6, last_error = 0.0):
         '''Simple PD controller implementation, initializes with given gains and last error'''
         self.kp = kp

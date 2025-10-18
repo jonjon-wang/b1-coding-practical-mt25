@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
 from .terrain import generate_reference_and_limits
@@ -128,6 +129,7 @@ class ClosedLoop:
     def __init__(self, plant: Submarine, controller):
         self.plant = plant
         self.controller = controller
+        self.errorlog = None
 
     def simulate(self,  mission: Mission, disturbances: np.ndarray) -> Trajectory:
 
@@ -137,6 +139,7 @@ class ClosedLoop:
         
         positions = np.zeros((T, 2))
         actions = np.zeros(T)
+        errorlog = np.zeros(T)
 
         self.controller.reset()
         self.plant.reset_state()
@@ -147,12 +150,35 @@ class ClosedLoop:
             reference_t = float(mission.reference[t])
 
             error = reference_t - observation_t
+            errorlog[t] = abs(error)
             actions[t] = self.controller.update(error)
 
             self.plant.transition(actions[t], disturbances[t])
 
+        self.errorlog = errorlog
+
         return Trajectory(positions)
         
-    def simulate_with_random_disturbances(self, mission: Mission, variance: float = 0.5) -> Trajectory:
-        disturbances = np.random.normal(0, variance, len(mission.reference))
+    def simulate_with_random_disturbances(self, mission: Mission, variance: float = 0.5, seed: Optional[int] = None) -> Trajectory:
+        """Simulate with Gaussian random disturbances.
+
+        Args:
+            mission: Mission instance defining the duration T.
+            variance: standard deviation of the normal disturbance (float).
+            seed: optional integer seed for reproducible random draws. If None,
+                a non-deterministic generator is used.
+
+        Returns:
+            Trajectory recorded from the simulation.
+        """
+        # Use a Generator for reproducible draws when seed is provided
+        rng = np.random.default_rng(seed)
+        disturbances = rng.normal(0, variance, len(mission.reference))
         return self.simulate(mission, disturbances)
+
+    def get_avg_error(self) -> float:
+        if self.errorlog is not None:
+            erroravg = np.mean(self.errorlog)
+            return erroravg
+        else:
+            raise ValueError("No error value available, please run simulate before accessing.")
